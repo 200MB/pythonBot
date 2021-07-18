@@ -7,7 +7,6 @@ from bs4 import BeautifulSoup
 from discord.ext import commands
 from discord.ext.commands import has_permissions
 from discord_slash import SlashCommand
-from google_images_search import GoogleImagesSearch
 from matplotlib import colors
 from selenium import webdriver
 
@@ -15,12 +14,9 @@ intents = discord.Intents.all()
 client = commands.Bot(command_prefix="`", intents=intents)
 slash = SlashCommand(client, sync_commands=True)
 guild_ids = [621266094983872522, 795406865676763178]
-gis = GoogleImagesSearch(developer_key='AIzaSyBB2Q54mZoReRe1ZNI-W4lxPjUCZLSOjqA', custom_search_cx='af000b0fa5854775d')
 memberlist = []
 reasonlist = []
 
-
-# "NzcyMDA4NDMwNDk1MzM0NDQx.YN8XMg.hHQeYKxIYRu0npP-H74T0TO1sgI" 200MB alt white
 
 def is_Owner_or_admin():
     async def predicate(ctx):
@@ -310,16 +306,22 @@ async def make_embed(ctx):
 
 @client.command()  # fix
 async def clearmine(ctx, amount: int):
+    amount += 1
+    temp = amount
     count = 0
-    for channel in ctx.guild.text_channels:
-        async for message in channel.history(limit=amount):
-            if count == amount:
-                count = 0
-                break
-            else:
-                await message.delete()
+    while True:
+        count = 0
+        async for message in ctx.channel.history(limit=temp):
+            if message.author == ctx.author:
                 count += 1
-                await asyncio.sleep(1)
+            if count == amount:
+                break
+        if count != amount:
+            temp += 5
+        else:
+            await ctx.channel.purge(limit=temp, check=lambda message: message.author == ctx.author)
+            break
+        await asyncio.sleep(1)
 
 
 @client.command()
@@ -722,7 +724,3 @@ async def img(ctx, *, word: str):
 
 
 client.run("ODEwMDQ4NjI4MzM1OTY4Mjg4.YCd-kg.fu2q4SxiSe0Td00FuUqBk_E98C4")
-
-# bot ODEwMDQ4NjI4MzM1OTY4Mjg4.YCd-kg.fu2q4SxiSe0Td00FuUqBk_E98C4"
-# emam NzAwNzQ3MTkyNzg0MTI1OTcy.YOHvRg.oNxDfiMhtQBzs2HShL6dFUb8o1o
-# AIzaSyBB2Q54mZoReRe1ZNI-W4lxPjUCZLSOjqA
