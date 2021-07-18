@@ -6,17 +6,14 @@ import discord
 from bs4 import BeautifulSoup
 from discord.ext import commands
 from discord.ext.commands import has_permissions
-from discord_buttons_plugin import *
 from discord_slash import SlashCommand
 from google_images_search import GoogleImagesSearch
 from matplotlib import colors
 from selenium import webdriver
 
-intents = discord.Intents.default()
-intents.members = True
+intents = discord.Intents.all()
 client = commands.Bot(command_prefix="`", intents=intents)
 slash = SlashCommand(client, sync_commands=True)
-buttons = ButtonsClient(client)
 guild_ids = [621266094983872522, 795406865676763178]
 gis = GoogleImagesSearch(developer_key='AIzaSyBB2Q54mZoReRe1ZNI-W4lxPjUCZLSOjqA', custom_search_cx='af000b0fa5854775d')
 memberlist = []
@@ -160,40 +157,7 @@ async def gb_error(ctx, error):
             "This command is on cooldown 1 use per 5 seconds ({:.2f}s seconds left)".format(error.retry_after))
 
 
-@slash.slash(name="Gb", description="Its an 8ball ask anything", guild_ids=guild_ids)
-async def _gb(ctx, *, question):
-    response = ["It is certain.",
-                "It is decidedly so.",
-                "Without a doubt.",
-                "Yes - definitely.",
-                "You may rely on it.",
-                "As I see it, yes.",
-                "Most likely.",
-                "Outlook good.",
-                "Yes.",
-                "Signs point to yes.",
-                "Reply hazy, try again.",
-                "Ask again later.",
-                "Better not tell you now.",
-                "Cannot predict now.",
-                "Concentrate and ask again.",
-                "Don't count on it.",
-                "My reply is no.",
-                "My sources say no.",
-                "Outlook not so good.",
-                "Very doubtful."]
-
-    await ctx.send(f"question: {question} \nanswer: {random.choice(response)}")
-
-
 @client.command(pass_context=True)
-@is_Owner_or_admin()
-async def giverole(ctx, user: discord.Member, role: discord.Role):
-    await user.add_roles(role)
-    await ctx.send(f"hey {user.name} has been given a role called: {role.name}")
-
-
-@slash.slash(name="Giverole", description="Gives role to a user", guild_ids=guild_ids)
 @is_Owner_or_admin()
 async def giverole(ctx, user: discord.Member, role: discord.Role):
     await user.add_roles(role)
@@ -207,31 +171,9 @@ async def removerole(ctx, user: discord.Member, role: discord.Role):
     await ctx.send(f'hey {user.name} has lost a role called: {role.name}')
 
 
-@slash.slash(name="Removerole", description="Removes role from user", guild_ids=guild_ids)
-@is_Owner_or_admin()
-async def _removerole(ctx, user: discord.Member, role: discord.Role):
-    await user.remove_roles(role)
-    await ctx.send(f'hey {user.name} has lost a role called: {role.name}')
-
-
 @client.command(pass_context=True)
 @is_Owner_or_admin()
 async def mute(ctx, member: discord.Member):
-    if member.guild_permissions.administrator:
-        await ctx.send("The mentioned user is an admin")
-        return
-    else:
-        for channel in ctx.guild.text_channels:
-            perms = channel.overwrites_for(member)
-            perms.send_messages = False
-            await channel.set_permissions(member, overwrite=perms)
-
-        await ctx.send(F"Muted {member}")
-
-
-@slash.slash(name="Mute", description="Mutes user", guild_ids=guild_ids)
-@is_Owner_or_admin()
-async def _mute(ctx, member: discord.Member):
     if member.guild_permissions.administrator:
         await ctx.send("The mentioned user is an admin")
         return
@@ -269,21 +211,6 @@ async def unmute(ctx, member: discord.Member):
         await ctx.send(F"unMuted {member}")
 
 
-@slash.slash(name="Unmute", description="Unmutes user", guild_ids=guild_ids)
-@is_Owner_or_admin()
-async def _unmute(ctx, member: discord.Member):
-    if member.guild_permissions.administrator:
-        await ctx.send("The mentioned user is an admin")
-        return
-    else:
-        for channel in ctx.guild.text_channels:
-            perms = channel.overwrites_for(member)
-            perms.send_messages = True
-            await channel.set_permissions(member, overwrite=perms)
-
-        await ctx.send(F"unMuted {member}")
-
-
 @unmute.error
 async def unmute_error(ctx, error):
     if isinstance(error, commands.CommandInvokeError):
@@ -299,13 +226,6 @@ async def kick(ctx, member: discord.Member, reason: str):
     await ctx.send(F"{member.display_name} has been kicked")
 
 
-@slash.slash(name="Kick", description="Kicks user", guild_ids=guild_ids)
-@is_Owner_or_admin()
-async def _kick(ctx, member: discord.Member, reason: str):
-    await member.kick(reason=reason)
-    await ctx.send(F"{member.display_name} has been kicked")
-
-
 @kick.error
 async def kick_error(ctx, error):
     if isinstance(error, commands.CommandInvokeError):
@@ -317,17 +237,6 @@ async def kick_error(ctx, error):
 @client.command(pass_context=True)
 @is_Owner_or_admin()
 async def ban(ctx, member: discord.User):
-    if member.guild_permissions.administrator:
-        await ctx.send("The mentioned user is an admin")
-        return
-    else:
-        await ctx.guild.ban(member)
-        await ctx.send(F"{member.display_name} has been banned")
-
-
-@slash.slash(name="Ban", description="Bans user", guild_ids=guild_ids)
-@is_Owner_or_admin()
-async def _ban(ctx, member: discord.User):
     if member.guild_permissions.administrator:
         await ctx.send("The mentioned user is an admin")
         return
@@ -352,14 +261,6 @@ async def unban(ctx, id: int):
     await ctx.send(F"{user.display_name} has been unbanned")
 
 
-@slash.slash(name="Unban", description="Unbans user", guild_ids=guild_ids)
-@is_Owner_or_admin()
-async def _unban(ctx, id: int):
-    user = await client.fetch_user(id)
-    await ctx.guild.unban(user)
-    await ctx.send(F"{user.display_name} has been unbanned")
-
-
 @unban.error
 async def unban_error(ctx, error):
     if isinstance(error, commands.CommandInvokeError):
@@ -378,31 +279,8 @@ async def user(ctx, member: discord.Member):
     await  ctx.send(embed=embed)
 
 
-@slash.slash(name="User", description="Shows the user info", guild_ids=guild_ids)
-async def _user(ctx, member: discord.Member):
-    embed = discord.Embed()
-    embed.set_author(name=member.display_name)
-    embed.add_field(name="Joined at", value=member.joined_at.strftime("%b %d, %Y"), inline=True)
-    embed.add_field(name="Created account", value=member.created_at.strftime("%b %d, %Y"), inline=True)
-    embed.set_image(url=member.avatar_url)
-    await  ctx.send(embed=embed)
-
-
 @client.command(pass_context=True)
 async def serverinfo(ctx):
-    server = ctx.guild
-    embed = discord.Embed(title=server.name)
-    embed.add_field(name="Created:", value=server.created_at.strftime("%b %d, %Y"), inline=True)
-    embed.add_field(name="Owner", value=server.owner, inline=True)
-    embed.add_field(name="Member count", value=server.member_count, inline=True)
-    embed.add_field(name="Channels", value=len(server.channels), inline=True)
-    embed.add_field(name="Categories", value=len(server.categories), inline=True)
-    embed.set_thumbnail(url=server.icon_url)
-    await ctx.send(embed=embed)
-
-
-@slash.slash(name="Serverinfo", description="Shows server info", guild_ids=guild_ids)
-async def _serverinfo(ctx):
     server = ctx.guild
     embed = discord.Embed(title=server.name)
     embed.add_field(name="Created:", value=server.created_at.strftime("%b %d, %Y"), inline=True)
@@ -430,50 +308,49 @@ async def make_embed(ctx):
     await ctx.send(embed=embed)
 
 
-@make_embed.error
-async def _make_embed_error(ctx, error):
-    if isinstance(error, commands.CommandOnCooldown):
-        await ctx.send("This command is on cooldown 1 per 15 seconds ({:.2f}s seconds left)".format(error.retry_after))
+@client.command()  # fix
+async def clearmine(ctx, amount: int):
+    count = 0
+    for channel in ctx.guild.text_channels:
+        async for message in channel.history(limit=amount):
+            if count == amount:
+                count = 0
+                break
+            else:
+                await message.delete()
+                count += 1
+                await asyncio.sleep(1)
 
 
 @client.command()
-async def clearmine(ctx, amount):
-    intamount = int(amount)
-    await ctx.channel.purge(limit=intamount, check=lambda message: message.author == ctx.author)
-
-
-@slash.slash(name="Clearmine", description="Will only delete your messages (input a higher number)",
-             guild_ids=guild_ids)
-async def _clearmine(ctx, amount):
-    intamount = int(amount)
-    await ctx.channel.purge(limit=intamount, check=lambda message: message.author == ctx.author)
-    await ctx.send(f"Deleted {intamount} messages")
-
-
-@client.command()
-async def clear(ctx, amount):
-    intamount = int(amount)
-    await ctx.channel.purge(limit=intamount)
-
-
-@slash.slash(name="Clear", description="Deletes the number of messages", guild_ids=guild_ids)
-async def _clear(ctx, amount):
-    intamount = int(amount)
-    await ctx.channel.purge(limit=intamount)
-    await ctx.send(f"Deleted {intamount} messages")
+@is_Owner_or_admin()
+async def clear(ctx, amount: int):
+    amount += 1
+    authors = []
+    authorcounter = []
+    async for message in ctx.channel.history(limit=amount):
+        if message.author.name in authors:
+            index = authors.index(message.author.name)
+            authorcounter[index] += 1
+        else:
+            authors.append(message.author.name)
+            authorcounter.append(1)
+    await ctx.channel.purge(limit=amount)
+    embed = discord.Embed(title=" ")
+    for i in range(len(authors)):
+        embed.add_field(name=authors[i], value=authorcounter[i], inline=False)
+    timer = time.time() + 5
+    msg = await ctx.send(embed=embed)
+    while True:
+        if time.time() > timer:
+            await msg.delete()
+            break
+        await asyncio.sleep(1)
 
 
 @client.command()
 async def afk(ctx, *, reason: str):
     user = ctx.message.author
-    memberlist.append(user)
-    reasonlist.append(reason)
-    await ctx.send(f"Set reason:{reason}")
-
-
-@slash.slash(name="afk", description="If mentioned,Bot will tell them that you are afk")
-async def _afk(ctx, *, reason: str):
-    user = ctx.author
     memberlist.append(user)
     reasonlist.append(reason)
     await ctx.send(f"Set reason:{reason}")
@@ -487,14 +364,6 @@ async def afk_error(ctx, error):
 
 @client.command()
 async def avatar(ctx, user: discord.Member):
-    embed = discord.Embed(description="AVATAR")
-    embed.set_author(name=user.display_name, url=user.avatar_url, icon_url=user.avatar_url)
-    embed.set_image(url=user.avatar_url)
-    await ctx.send(embed=embed)
-
-
-@slash.slash(name="avatar", description="Shows user avatar", guild_ids=guild_ids)
-async def _avatar(ctx, user: discord.Member):
     embed = discord.Embed(description="AVATAR")
     embed.set_author(name=user.display_name, url=user.avatar_url, icon_url=user.avatar_url)
     embed.set_image(url=user.avatar_url)
@@ -526,14 +395,6 @@ async def softban_error(ctx, error):
         raise error
 
 
-@slash.slash(name="Softban", description="Bans and unbans user to delete all their messages", guild_ids=guild_ids)
-@is_Owner_or_admin()
-async def _softban(ctx, user: discord.User):
-    await ctx.guild.ban(user)
-    await ctx.guild.unban(user)
-    await ctx.send(f"SoftBanned the {user.display_name}")
-
-
 @client.command()
 async def members(ctx, role: discord.Role):
     embed = discord.Embed(title=f"ALL USERS WITH {role.name} ROLE")
@@ -552,49 +413,18 @@ async def member_error(ctx, error):
         raise error
 
 
-@slash.slash(name="members", description="will show every member that has the inputted role", guild_ids=guild_ids)
-async def _members(ctx, role: discord.Role):
-    embed = discord.Embed(title=f"ALL USERS WITH {role.name} ROLE")
-    guild = ctx.guild
-    usercheck = []
-    for member in guild.members:
-        if role in member.roles:
-            usercheck = member
-            embed.add_field(name=member.display_name, value="✔️", inline=True)
-    if usercheck:
-        await ctx.send(embed=embed)
-    else:
-        await ctx.send("There are no users with this role")
-
-
 @client.command()
 async def join(ctx):
     channel = ctx.author.voice.channel
     await channel.connect()
 
 
-@slash.slash(name="join", description="Joins voice channel", guild_ids=guild_ids)
-async def _join(ctx):
-    channel = ctx.author.voice.channel
-    await channel.connect()
-    await ctx.send("Connected!")
-
-
 @client.command()
 async def leave(ctx):
     for x in client.voice_clients:
         if ctx.author:
-            await x.disconnect()
+            await x.disconnect(force=True)
             x.cleanup()
-
-
-@slash.slash(name="leave", description="leaves voice channel", guild_ids=guild_ids)
-async def _leave(ctx):
-    for x in client.voice_clients:
-        if ctx.author:
-            await x.disconnect()
-            x.cleanup()
-    await ctx.send("Disconnected!")
 
 
 OnlyMeUsers = []
@@ -770,35 +600,8 @@ async def availablevc(ctx):
     await ctx.send(embed=embed)
 
 
-@slash.slash(name="availablevc", description="shows which vc are not tagged with OnlyMe", guild_ids=guild_ids)
-async def _availablevc(ctx):
-    global OnlyMeUsers
-    embed = discord.Embed(title="All available vc")
-    all = ctx.guild.voice_channels
-    blacklisted = []
-    global OnlyMeUsers
-    for x in all:
-        for member in OnlyMeUsers:
-            if member in x.members:
-                blacklisted.append(x.name)
-    for channel in all:
-        if channel.name not in blacklisted:
-            embed.add_field(name=channel.name, value='\u200b', inline=False)
-    await ctx.send(embed=embed)
-
-
 @client.command()
 async def onlymeoff(ctx):
-    global OnlyMeUsers
-    if ctx.author in OnlyMeUsers:
-        OnlyMeUsers.remove(ctx.author)
-        await ctx.send(f"Removed {ctx.author.display_name} from OnlyUser priority")
-    elif ctx.author not in OnlyMeUsers:
-        await ctx.send("You are already tagged off")
-
-
-@slash.slash(name="Onlymeoff", description="Removes onlyme status manually", guild_ids=guild_ids)
-async def _onlymeoff(ctx):
     global OnlyMeUsers
     if ctx.author in OnlyMeUsers:
         OnlyMeUsers.remove(ctx.author)
@@ -812,25 +615,6 @@ async def _onlymeoff(ctx):
 
 @client.command()
 async def unusedroles(ctx):
-    embed = discord.Embed(title="UNUSED ROLES")
-    guild = ctx.guild
-    role_names = []
-    rolecheck = []
-    for member in guild.members:
-        for role in member.roles:
-            role_names.append(role.name)
-    for role in guild.roles:
-        if role.name not in role_names:
-            rolecheck = role
-            embed.add_field(name=role, value='\u200b', inline=False)
-    if rolecheck:
-        await ctx.send(embed=embed)
-    else:
-        await ctx.send("Every role is currently used")
-
-
-@slash.slash(name="unusedroles", description="Displays every unused role in a server", guild_ids=guild_ids)
-async def _unusedroles(ctx):
     embed = discord.Embed(title="UNUSED ROLES")
     guild = ctx.guild
     role_names = []
