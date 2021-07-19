@@ -3,17 +3,15 @@ import random
 import time
 
 import discord
+import discord.ui
 from bs4 import BeautifulSoup
 from discord.ext import commands
 from discord.ext.commands import has_permissions
-from discord_slash import SlashCommand
 from matplotlib import colors
 from selenium import webdriver
 
 intents = discord.Intents.all()
 client = commands.Bot(command_prefix="`", intents=intents)
-slash = SlashCommand(client, sync_commands=True)
-guild_ids = [621266094983872522, 795406865676763178]
 memberlist = []
 reasonlist = []
 
@@ -29,6 +27,7 @@ def is_Owner_or_admin():
 async def on_ready():
     await client.change_presence(activity=discord.Game(name="`Jhelp"))
     print("Ready to go")
+    print(f"{discord.version_info}")
 
 
 @client.event
@@ -92,10 +91,13 @@ async def Jhelp(ctx):
                     inline=True)
     embed.add_field(name="availablevc", value="Shows voice channels with no OnlyMe users (`availablevc)", inline=True)
     embed.add_field(name="requestjoin", value="Requests to join OnlyMe tagged vc (`requestjoin @user)", inline=True)
-    embed.add_field(name="removeuser",
+    newembed = discord.Embed(title="Help center v2")
+    newembed.add_field(name="removeuser",
                     value="Removes the OnlyMe accepted user (must be the first OnlyMe user in vc) (`removeuser @user)",
                     inline=True)
-    embed.add_field(name="img", value="Shows google images of the keyword (`img word)", inline=True)
+    newembed.add_field(name="suggest", value="Sends bot suggestions(bug reports included)", inline=True),
+    newembed.add_field(name="img", value="Shows google images of the keyword (`img word)", inline=True)
+
     about = discord.Embed(title="ABOUT KICK BAN MUTE REMOVEALLROLES REMOVEALLUNUSED", description=
     """ 
     IF the listed commands are not working, its high likely because of permissions
@@ -105,7 +107,9 @@ async def Jhelp(ctx):
     about.set_image(url="https://cdn.discordapp.com/attachments/846048228330962954/856862095614279700/Visual.gif")
     user = ctx.message.author
     await user.send(embed=embed)
+    await user.send(embed=newembed)
     await user.send(embed=about)
+
 
 
 @client.command()
@@ -721,6 +725,57 @@ async def img(ctx, *, word: str):
         except asyncio.TimeoutError:
             break
         await asyncio.sleep(1)
+
+
+class Confirm(discord.ui.View):
+    @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
+    async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await interaction.response.send_message('Confirming', ephemeral=True)
+        self.stop()
+
+    @discord.ui.button(label='Cancel', style=discord.ButtonStyle.grey)
+    async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
+        await interaction.response.send_message('Cancelling', ephemeral=True)
+        self.stop()
+
+
+@client.command()
+@commands.cooldown(1, 7200, commands.BucketType.user)
+async def suggest(ctx, *, msg: str):
+    embed = discord.Embed(title=f"{ctx.author.display_name}'#'{ctx.author.discriminator}  {ctx.guild.name}", description=msg)
+    user = await client.fetch_user(398893725842931722)
+    msgg = await user.send(embed=embed)
+    await msgg.add_reaction("✅")
+    await msgg.add_reaction("❎")
+    await msgg.add_reaction("➡️")
+
+    def check(reaction, user):
+        return user != client.user and str(reaction) == "❎" or str(reaction) == "➡️" or str(reaction) == '✅'
+
+    def checkm(message):
+       return message.author == user
+
+    while True:
+        reaction, member = await client.wait_for('reaction_add', check=check)
+
+        if str(reaction) == "❎" and member == user:
+            await ctx.send(f"{ctx.author.mention}\nrequest for {msg}\nwas Declined")
+            break
+        elif str(reaction) == "➡️" and member == user:
+            await user.send("Waiting for response...")
+            response = await client.wait_for('message', check=checkm)
+            await ctx.send(f"{ctx.author.mention}\nrequest for {msg} got a response\n{response.content}")
+            break
+        elif str(reaction) == '✅' and member == user:
+            await ctx.send(f"{ctx.author.mention}\nrequest for {msg}\nwas Accepted")
+            break
+    await asyncio.sleep(1)
+
+@suggest.error
+async def suggest_error(ctx,error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(
+            "This command is on cooldown 1 use every 2Hours ({:.2f}s seconds left)".format(error.retry_after))
 
 
 client.run("ODEwMDQ4NjI4MzM1OTY4Mjg4.YCd-kg.fu2q4SxiSe0Td00FuUqBk_E98C4")
