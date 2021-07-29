@@ -1,5 +1,6 @@
 import asyncio
 import random
+import subprocess
 import time
 
 import discord
@@ -93,10 +94,12 @@ async def Jhelp(ctx):
     embed.add_field(name="requestjoin", value="Requests to join OnlyMe tagged vc (`requestjoin @user)", inline=True)
     newembed = discord.Embed(title="Help center v2")
     newembed.add_field(name="removeuser",
-                    value="Removes the OnlyMe accepted user (must be the first OnlyMe user in vc) (`removeuser @user)",
-                    inline=True)
+                       value="Removes the OnlyMe accepted user (must be the first OnlyMe user in vc) (`removeuser @user)",
+                       inline=True)
     newembed.add_field(name="suggest", value="Sends bot suggestions(bug reports included)", inline=True),
     newembed.add_field(name="img", value="Shows google images of the keyword (`img word)", inline=True)
+    newembed.add_field(name="pingcmd", value="Shows the website server ping (`ping (url) (details=True/False))",
+                       inline=True)
 
     about = discord.Embed(title="ABOUT KICK BAN MUTE REMOVEALLROLES REMOVEALLUNUSED", description=
     """ 
@@ -109,7 +112,6 @@ async def Jhelp(ctx):
     await user.send(embed=embed)
     await user.send(embed=newembed)
     await user.send(embed=about)
-
 
 
 @client.command()
@@ -688,8 +690,9 @@ async def img(ctx, *, word: str):
     url = f"https://www.pinterest.com/search/pins/?q={word}&rs=typed&term_meta[]={word}%7Ctyped.html"
     scrollnumber = 3
     options = webdriver.ChromeOptions()
+    options.add_argument('headless')
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
-    driver = webdriver.Chrome()
+    driver = webdriver.Chrome(options=options)
     driver.get(url)
     for _ in range(1, scrollnumber):
         driver.execute_script("window.scrollTo(1,100000)")
@@ -739,43 +742,100 @@ class Confirm(discord.ui.View):
         self.stop()
 
 
+listedusers = []
+
+
+def getname(sen: str):
+    name = ""
+    message = ""
+    for i in range(len(sen)):
+        if sen[i] != ':':
+            name += sen[i]
+        else:
+            message = sen[i + 1:len(sen)]
+            break
+    return name, message
+
+
+def checkuser(username: str):
+    global listedusers
+    for i in listedusers:
+        if i.display_name == username:
+            return i
+
+
+@client.event
+async def on_reaction_add(reaction, user):
+    mainuser = await client.fetch_user(398893725842931722)
+
+    def checkm(message):
+        return message.author == user
+
+    if isinstance(reaction.message.channel, discord.channel.DMChannel):
+        if str(reaction) == "❎" and user == mainuser:
+            user1, msg = getname(reaction.message.content)
+            cur = checkuser(user1)
+            await cur.send(f"{cur.mention}\nrequest for {msg}\nwas Declined")
+        elif str(reaction) == "➡️" and user == mainuser:
+            user1, msg = getname(reaction.message.content)
+            cur = checkuser(user1)
+            await user.send("Waiting for response...")
+            response = await client.wait_for('message', check=checkm)
+            await cur.send(f"{cur.mention}\nrequest for /{msg}/ got a response\n{response.content}")
+        elif str(reaction) == '✅' and user == mainuser:
+            user1, msg = getname(reaction.message.content)
+            cur = checkuser(user1)
+            await cur.send(f"{cur.mention}\nrequest for {msg}\nwas Accepted")
+
+
 @client.command()
-@commands.cooldown(1, 7200, commands.BucketType.user)
+@commands.cooldown(1, 7200, commands.BucketType.user)  # write each user check and blacklist
 async def suggest(ctx, *, msg: str):
-    embed = discord.Embed(title=f"{ctx.author.display_name}'#'{ctx.author.discriminator}  {ctx.guild.name}", description=msg)
+    name = ctx.author
+    global listedusers
+    listedusers.append(name)
     user = await client.fetch_user(398893725842931722)
-    msgg = await user.send(embed=embed)
+    msgg = await user.send(f'{name.display_name}:{msg}')
     await msgg.add_reaction("✅")
     await msgg.add_reaction("❎")
     await msgg.add_reaction("➡️")
 
-    def check(reaction, user):
-        return user != client.user and str(reaction) == "❎" or str(reaction) == "➡️" or str(reaction) == '✅'
-
-    def checkm(message):
-       return message.author == user
-
-    while True:
-        reaction, member = await client.wait_for('reaction_add', check=check)
-
-        if str(reaction) == "❎" and member == user:
-            await ctx.send(f"{ctx.author.mention}\nrequest for {msg}\nwas Declined")
-            break
-        elif str(reaction) == "➡️" and member == user:
-            await user.send("Waiting for response...")
-            response = await client.wait_for('message', check=checkm)
-            await ctx.send(f"{ctx.author.mention}\nrequest for {msg} got a response\n{response.content}")
-            break
-        elif str(reaction) == '✅' and member == user:
-            await ctx.send(f"{ctx.author.mention}\nrequest for {msg}\nwas Accepted")
-            break
-    await asyncio.sleep(1)
 
 @suggest.error
-async def suggest_error(ctx,error):
+async def suggest_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
-        await ctx.send(
-            "This command is on cooldown 1 use every 2Hours ({:.2f}s seconds left)".format(error.retry_after))
+        if error.retry_after > 3600:
+            hours = error.retry_after / 3600
+            await ctx.send(f"Cooldown(2 hours):{round(hours)} hours left")
+        elif error.retry_after < 3600:
+            minutes = error.retry_after / 60
+            await ctx.send(f'Cooldown(2 hours):{round(minutes)} minutes left')
+        elif error.retry_after < 60:
+            await ctx.send(f'Cooldown(2 hours):{error.retry_after} seconds left')
 
 
+@client.command()
+async def pingcmd(ctx, ip: str, details: bool):
+    if details:
+        await ctx.send(subprocess.Popen("ping -n 3 " + ip, shell=True, stdout=subprocess.PIPE,
+                                        universal_newlines=True).communicate()[0])
+
+    else:
+        response = subprocess.call("ping -n 1 " + ip, creationflags=8)
+        if response == 0:
+            await ctx.send("Its up!")
+        else:
+            await ctx.send("Its down!")
+
+@pingcmd.error
+async def p_error(ctx,error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send('`pingcmd {site} {details true/false}')
+    elif isinstance(error, commands.BadBoolArgument):
+        await ctx.send('That is not a bool. Either True or False (t & f is also acceptable)')
+
+
+@client.command()
+async def t(ctx):
+    await ctx.send("yes", view=Confirm())
 client.run("ODEwMDQ4NjI4MzM1OTY4Mjg4.YCd-kg.fu2q4SxiSe0Td00FuUqBk_E98C4")
