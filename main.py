@@ -100,6 +100,7 @@ async def Jhelp(ctx):
     newembed.add_field(name="img", value="Shows google images of the keyword (`img word)", inline=True)
     newembed.add_field(name="pingcmd", value="Shows the website server ping (`ping (url) (details=True/False))",
                        inline=True)
+    newembed.add_field(name="report", value="Reports a user(`report @user #channel reason)", inline=True)
 
     about = discord.Embed(title="ABOUT KICK BAN MUTE REMOVEALLROLES REMOVEALLUNUSED", description=
     """ 
@@ -176,7 +177,7 @@ async def removerole(ctx, user: discord.Member, role: discord.Role):
 @client.command(pass_context=True)
 @is_Owner_or_admin()
 async def mute(ctx, member: discord.Member):
-    if member.guild_permissions.administrator:
+    if member.guild_permissions.administrator and ctx.author is is_Owner_or_admin():
         await ctx.send("The mentioned user is an admin")
         return
     else:
@@ -277,7 +278,7 @@ async def user(ctx, member: discord.Member):
     embed.set_author(name=member.display_name)
     embed.add_field(name="Joined at", value=member.joined_at.strftime("%b %d, %Y"), inline=True)
     embed.add_field(name="Created account", value=member.created_at.strftime("%b %d, %Y"), inline=True)
-    embed.set_image(url=member.avatar_url)
+    embed.set_image(url=member.avatar.url)
     await  ctx.send(embed=embed)
 
 
@@ -374,7 +375,7 @@ async def afk_error(ctx, error):
 async def avatar(ctx, user: discord.Member):
     embed = discord.Embed(description="AVATAR")
     embed.set_author(name=user.display_name, url=user.avatar_url, icon_url=user.avatar_url)
-    embed.set_image(url=user.avatar_url)
+    embed.set_image(url=user.avatar.url)
     await ctx.send(embed=embed)
 
 
@@ -730,18 +731,6 @@ async def img(ctx, *, word: str):
         await asyncio.sleep(1)
 
 
-class Confirm(discord.ui.View):
-    @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
-    async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message('Confirming', ephemeral=True)
-        self.stop()
-
-    @discord.ui.button(label='Cancel', style=discord.ButtonStyle.grey)
-    async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message('Cancelling', ephemeral=True)
-        self.stop()
-
-
 listedusers = []
 
 
@@ -827,8 +816,9 @@ async def pingcmd(ctx, ip: str, details: bool):
         else:
             await ctx.send("Its down!")
 
+
 @pingcmd.error
-async def p_error(ctx,error):
+async def p_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.send('`pingcmd {site} {details true/false}')
     elif isinstance(error, commands.BadBoolArgument):
@@ -836,6 +826,38 @@ async def p_error(ctx,error):
 
 
 @client.command()
-async def t(ctx):
-    await ctx.send("yes", view=Confirm())
+async def report(ctx, member: discord.Member, channel: discord.TextChannel, *, reason: str):
+    embed = discord.Embed(title=f"Report from {ctx.author.display_name}#{ctx.author.discriminator}", description=reason)
+    embed.set_author(name=f'{member.display_name} ⚠️')
+    embed.set_image(url=member.avatar.url)
+    embed.set_footer(icon_url=member.avatar.url)
+
+    class Confirm(discord.ui.View):
+        @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
+        async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+            if interaction.user == ctx.author:
+                await interaction.response.send_message('Confirming', ephemeral=True)
+                await channel.send(embed=embed)
+                self.stop()
+
+        @discord.ui.button(label='Cancel', style=discord.ButtonStyle.grey)
+        async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
+            if interaction.user == ctx.author:
+                await interaction.response.send_message('Cancelling', ephemeral=True)
+                await ctx.message.delete()
+                self.stop()
+
+    await ctx.send("Confirm?", view=Confirm())
+
+
+@report.error
+async def report_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("`Report @user #channel reason")
+    elif isinstance(error, commands.MemberNotFound):
+        await ctx.send("Member was not found")
+    else:
+        raise error
+
+
 client.run("ODEwMDQ4NjI4MzM1OTY4Mjg4.YCd-kg.fu2q4SxiSe0Td00FuUqBk_E98C4")
