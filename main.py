@@ -5,6 +5,7 @@ import time
 
 import discord
 import discord.ui
+import spotipy
 from bs4 import BeautifulSoup
 from discord.ext import commands
 from discord.ext.commands import has_permissions
@@ -15,6 +16,12 @@ intents = discord.Intents.all()
 client = commands.Bot(command_prefix="`", intents=intents)
 memberlist = []
 reasonlist = []
+
+e = spotipy.oauth2.SpotifyClientCredentials(client_id='12a8a5c4e1244aa382fb704e44ca267d',
+                                            client_secret='1bcc4484e10b49d991a42c35d8dcdc74')
+sp = spotipy.Spotify(client_credentials_manager=e)
+
+client.remove_command('help')
 
 
 def is_Owner_or_admin():
@@ -78,14 +85,14 @@ async def Jhelp(ctx):
     embed.add_field(name="serverinfo", value="displays server info (`serverinfo)", inline=True)
     embed.add_field(name="avatar", value="displays user avatar (`avatar @user)", inline=True)
     embed.add_field(name="members", value="shows every member that has inputted role (`members @role)", inline=True)
-    embed.add_field(name="color", value="Shows the hex of that color (`color color)", inline=True)
+    # embed.add_field(name="color", value="Shows the hex of that color (`color color)", inline=True)
     embed.add_field(name="unusedroles", value="Displays every unused role in a server (`unusedroles)", inline=True)
-    embed.add_field(name="removeallroles", value="Removes all possible roles from user (`removeallroles @user)",
+    embed.add_field(name="removeallroles", value="Removes all possible roles from user (`removeall  roles @user)",
                     inline=True)
     embed.add_field(name="removeallunused", value="Removes all possible unused roles in server (`removeallunused)",
                     inline=True)
     embed.add_field(name="onlyme",
-                    value="Everyone who joins vc will be kicked except bots have some alone time (`onlyme)",
+                    value="Everyone who joins vc will be kicked except bots (`onlyme)",
                     inline=True)
     embed.add_field(name="onlymeoff",
                     value="Stops OnlyMe and everyone will be able to join, please do this before leaving (`onlymeoff)",
@@ -101,6 +108,10 @@ async def Jhelp(ctx):
     newembed.add_field(name="pingcmd", value="Shows the website server ping (`ping (url) (details=True/False))",
                        inline=True)
     newembed.add_field(name="report", value="Reports a user(`report @user #channel reason)", inline=True)
+    newembed.add_field(name="spotify", value="Searches and posts 30second sample of the song(`spotify song)",
+                       inline=True)
+    newembed.add_field(name="fclick", value="Who will click faster? (`fclick @user)", inline=True)
+    newembed.add_field(name="quote", value="just quotes the message (`quote (msg))", inline=True)
 
     about = discord.Embed(title="ABOUT KICK BAN MUTE REMOVEALLROLES REMOVEALLUNUSED", description=
     """ 
@@ -291,7 +302,7 @@ async def serverinfo(ctx):
     embed.add_field(name="Member count", value=server.member_count, inline=True)
     embed.add_field(name="Channels", value=len(server.channels), inline=True)
     embed.add_field(name="Categories", value=len(server.categories), inline=True)
-    embed.set_thumbnail(url=server.icon_url)
+    embed.set_thumbnail(url=server.icon.url)
     await ctx.send(embed=embed)
 
 
@@ -315,7 +326,6 @@ async def make_embed(ctx):
 async def clearmine(ctx, amount: int):
     amount += 1
     temp = amount
-    count = 0
     while True:
         count = 0
         async for message in ctx.channel.history(limit=temp):
@@ -380,7 +390,7 @@ async def avatar(ctx, user: discord.Member):
 
 
 @client.command()
-async def color(ctx, *, color: str):  # doesnt need slash for now
+async def color(ctx, *, color: str):
     embed = discord.Embed(title=color)
     embed.add_field(name="HEX", value=colors.to_hex(color), inline=True)
     await ctx.channel.send(embed=embed)
@@ -420,20 +430,6 @@ async def member_error(ctx, error):
         await ctx.send("You either mentioned a user or the role doesn't exist")
     else:
         raise error
-
-
-@client.command()
-async def join(ctx):
-    channel = ctx.author.voice.channel
-    await channel.connect()
-
-
-@client.command()
-async def leave(ctx):
-    for x in client.voice_clients:
-        if ctx.author:
-            await x.disconnect(force=True)
-            x.cleanup()
 
 
 OnlyMeUsers = []
@@ -833,7 +829,7 @@ async def report(ctx, member: discord.Member, channel: discord.TextChannel, *, r
     embed.set_footer(icon_url=member.avatar.url)
 
     class Confirm(discord.ui.View):
-        @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
+        @discord.ui.button(label='Confirm', style=discord.ButtonStyle.danger)
         async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
             if interaction.user == ctx.author:
                 await interaction.response.send_message('Confirming', ephemeral=True)
@@ -858,6 +854,174 @@ async def report_error(ctx, error):
         await ctx.send("Member was not found")
     else:
         raise error
+
+
+@client.command()
+async def join(ctx):
+    channel = ctx.author.voice.channel
+    await channel.connect()
+
+
+@client.command()
+async def leave(ctx):
+    for x in client.voice_clients:
+        if ctx.author:
+            await x.disconnect(force=True)
+            x.cleanup()
+
+
+@client.command()
+async def spotify(ctx, *, message: str):
+    results = sp.search(q=message, limit=1, type='track')
+    url = 'https://open.spotify.com/track/{}'.format(results['tracks']['items'][0]['id'])
+    await ctx.send(url)
+
+
+@client.command()
+async def fclick(ctx, user: discord.Member):
+    class click(discord.ui.View):
+        @discord.ui.button(label="Click me", style=discord.ButtonStyle.success)
+        async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+            if interaction.user == ctx.author:
+                await interaction.response.send_message(f'{ctx.author.mention} WON!!!')
+                self.stop()
+            elif interaction.user == user:
+                await interaction.response.send_message(f'{user.mention} WON!!!')
+                self.stop()
+
+    class Confirm(discord.ui.View):
+        @discord.ui.button(label='Yes', style=discord.ButtonStyle.danger)
+        async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+            if interaction.user == ctx.author:
+                await interaction.response.send_message('Starting...')
+                await ctx.send("Click me!!!", view=click())
+                self.stop()
+
+        @discord.ui.button(label='No', style=discord.ButtonStyle.grey)
+        async def cancel(self, button: discord.ui.Button, interaction: discord.Interaction):
+            if interaction.user == ctx.author:
+                await interaction.response.send_message('Cancelling')
+                await ctx.message.delete()
+                self.stop()
+
+    await ctx.send(f'{user.mention} do you wanna participate?', view=Confirm())
+
+
+@fclick.error
+async def flclick_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("`fclick @user")
+    elif isinstance(error, commands.MemberNotFound):
+        await ctx.send("Member not found")
+    else:
+        raise error
+
+
+@client.command()
+async def quote(ctx, *, quote: str):
+    class pin(discord.ui.View):
+        @discord.ui.button(label="Pin it", style=discord.ButtonStyle.success)
+        async def confirm(self, button: discord.ui.Button, interaction: discord.Interaction):
+            if interaction.user == ctx.author:
+                await ctx.message.pin()
+                self.stop()
+
+    msg = quote
+    msg += '\n'
+    for i in range(len(quote) + 3):
+        msg += " "
+    msg += "-" + ctx.author.display_name
+    await ctx.send(f'{msg}', view=pin())
+
+
+secret = False
+name = str
+keywords = ['irakli', 'nika', 'levan']
+
+
+class Dropdown(discord.ui.Select):
+    global secret
+
+    def __init__(self):
+        options = [
+            discord.SelectOption(label='Who is the owner?', description='\u200b'),
+            discord.SelectOption(label='What is the goal of this bot?', description='\u200b'),
+            discord.SelectOption(label='is it still getting updates?', description='\u200b')
+        ]
+        if secret and name == 'irakli':
+            options.append(discord.SelectOption(label="iraklis time capsule message 8/11/2021", description='\u200b'))
+        elif secret and name == 'nika':
+            options.append(discord.SelectOption(label="nikas time capsule message 8/11/2021", description='\u200b'))
+        elif secret and name == 'levan':
+            options.append(discord.SelectOption(label="levanis time capsule message 8/11/2021", description='\u200b'))
+        super().__init__(placeholder='Questions', min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        if self.values[0] == 'Who is the owner?':
+            await interaction.response.send_message("The owner of is bot is 200MB#4620")
+        elif self.values[0] == "What is the goal of this bot?":
+            await interaction.response.send_message("The goal is to write as many commands as possible, just for fun")
+        elif self.values[0] == "is it still getting updates?":
+            await interaction.response.send_message(
+                "Yes i am trying out new updates and constantly fixing bugs, once i get bored of it i will edit this message")
+        elif self.values[0] == "iraklis time capsule message 8/11/2021":
+            await interaction.response.send_message('balls')
+        elif self.values[0] == 'nikas time capsule message 8/11/2021':
+            await interaction.response.send_message(' Kh1Cec1Wqu16 old c++ encode last 2 num dec ')
+        elif self.values[0] == 'levanis time capsule message 8/11/2021':
+            await interaction.response.send_message('')
+
+
+class DropdownView(discord.ui.View):
+    def __init__(self):
+        super().__init__()
+        self.add_item(Dropdown())
+
+
+@client.command()
+async def bot(ctx, value: str = None):
+    global secret, keywords, name
+    if value in keywords:
+        secret = True
+        name = value
+    view = DropdownView()
+    await ctx.send('What can i help you with?:', view=view)
+    secret = False
+    name = None
+
+
+event = False
+eventname = None
+ticketsystem = []
+
+
+@client.command()
+async def ticket(ctx):
+    global ticketsystem, event
+    if event:
+        if ctx.author not in ticketsystem:
+            await ctx.send(f"Your ticket number is {len(ticketsystem) + 1}")
+            ticketsystem.append(ctx.author)
+        else:
+            await ctx.send(f"you are already registered and your ticket number is {ticketsystem.index(ctx.author) + 1}")
+    else:
+        await ctx.send("There are no events")
+
+
+@client.command()
+async def setevent(ctx, bool: bool, *, eventnam: str = None):
+    global event, eventname
+    if ctx.author.id == 398893725842931722:
+        if bool:
+            event = True
+            eventname = eventnam
+            await ctx.send("Set new event!")
+        else:
+            event = 0
+            eventname = None
+            await ctx.send("Stopped current event!")
+    else:
+        await ctx.send("this is Bot owner only command")
 
 
 client.run("ODEwMDQ4NjI4MzM1OTY4Mjg4.YCd-kg.fu2q4SxiSe0Td00FuUqBk_E98C4")
