@@ -17,8 +17,8 @@ client = commands.Bot(command_prefix="`", intents=intents)
 memberlist = []
 reasonlist = []
 
-e = spotipy.oauth2.SpotifyClientCredentials(client_id='12a8a5c4e1244aa382fb704e44ca267d',
-                                            client_secret='1bcc4484e10b49d991a42c35d8dcdc74')
+e = spotipy.oauth2.SpotifyClientCredentials(client_id='',
+                                            client_secret='')
 sp = spotipy.Spotify(client_credentials_manager=e)
 
 client.remove_command('help')
@@ -26,7 +26,7 @@ client.remove_command('help')
 
 def is_Owner_or_admin():
     async def predicate(ctx):
-        return ctx.author.id == 398893725842931722 or has_permissions(administrator=True)
+        return ctx.author.id == ? or has_permissions(administrator=True)
 
     return commands.check(predicate)
 
@@ -751,7 +751,7 @@ def checkuser(username: str):
 
 @client.event
 async def on_reaction_add(reaction, user):
-    mainuser = await client.fetch_user(398893725842931722)
+    mainuser = await client.fetch_user(?)
 
     def checkm(message):
         return message.author == user
@@ -779,7 +779,7 @@ async def suggest(ctx, *, msg: str):
     name = ctx.author
     global listedusers
     listedusers.append(name)
-    user = await client.fetch_user(398893725842931722)
+    user = await client.fetch_user(?)
     msgg = await user.send(f'{name.display_name}:{msg}')
     await msgg.add_reaction("✅")
     await msgg.add_reaction("❎")
@@ -948,11 +948,11 @@ class Dropdown(discord.ui.Select):
             discord.SelectOption(label='What is the goal of this bot?', description='\u200b'),
             discord.SelectOption(label='is it still getting updates?', description='\u200b')
         ]
-        if secret and name == 'irakli':
+        if secret and name == '':
             options.append(discord.SelectOption(label="iraklis time capsule message 8/11/2021", description='\u200b'))
-        elif secret and name == 'nika':
+        elif secret and name == '':
             options.append(discord.SelectOption(label="nikas time capsule message 8/11/2021", description='\u200b'))
-        elif secret and name == 'levan':
+        elif secret and name == '':
             options.append(discord.SelectOption(label="levanis time capsule message 8/11/2021", description='\u200b'))
         super().__init__(placeholder='Questions', min_values=1, max_values=1, options=options)
 
@@ -965,9 +965,9 @@ class Dropdown(discord.ui.Select):
             await interaction.response.send_message(
                 "Yes i am trying out new updates and constantly fixing bugs, once i get bored of it i will edit this message")
         elif self.values[0] == "iraklis time capsule message 8/11/2021":
-            await interaction.response.send_message('balls')
+            await interaction.response.send_message('')
         elif self.values[0] == 'nikas time capsule message 8/11/2021':
-            await interaction.response.send_message(' Kh1Cec1Wqu16 old c++ encode last 2 num dec ')
+            await interaction.response.send_message('')
         elif self.values[0] == 'levanis time capsule message 8/11/2021':
             await interaction.response.send_message('')
 
@@ -1011,7 +1011,7 @@ async def ticket(ctx):
 @client.command()
 async def setevent(ctx, bool: bool, *, eventnam: str = None):
     global event, eventname
-    if ctx.author.id == 398893725842931722:
+    if ctx.author.id == :
         if bool:
             event = True
             eventname = eventnam
@@ -1024,4 +1024,4 @@ async def setevent(ctx, bool: bool, *, eventnam: str = None):
         await ctx.send("this is Bot owner only command")
 
 
-client.run("ODEwMDQ4NjI4MzM1OTY4Mjg4.YCd-kg.fu2q4SxiSe0Td00FuUqBk_E98C4")
+client.run("")
